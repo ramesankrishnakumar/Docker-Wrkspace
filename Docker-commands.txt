@@ -1,0 +1,137 @@
+#GENERAL
+docker info - general info
+
+
+#CONTAINER
+docker container run --publish 80:80 --detach nginx  # run in background pair $ my port 80 container port 80 $  -> Order is important 
+docker container run --publish 80:80 --detach --name {name} nginx # create a new container with the given name $ must be unique name $
+docker container ls     # only running containers
+docker container ls -a  # all containers
+docker container stop {container-id} # stop container by id
+docker container logs {name} # logs of the container
+docker container top {name} # process running inside the container
+docker container rm {ids or names} # removes stopped container only
+docker container rm -f {ids or names} # removes all containers $ even running ones $
+docker container inspect {name} # details of the container config
+docker container stats
+
+
+
+# Running nginx, httpd, mysql
+docker container run --publish 80:80 --detach --name nginx nginx
+docker container run --publish 8080:80 --detach --name httpd httpd
+docker container run --publish 3306:3306 --detach --name mysql --env MYSQL_RANDOM_ROOT_PASSWORD=yes mysql
+doceker logs mysql   # GENERATED ROOT PASSWORD: kiequah8woziCh8shoo3OhHoochosahl
+docker container stop nginx httpd mysql # stop all containers
+docker container rm nginx httpd mysql
+docker container ls -a
+docker container stop mysql nginx-slave nginx-master # stop multiple running containers
+
+# CONTAINER SHELL
+docker container run -it --name nginx nginx {command e.g bash replaces the startup cmd of nginx}
+docker container run -it --name nginx-bash nginx bash
+doceker container start -ai nginx-bash
+docker exec -it mysql bash # starts a new process inside the container # exiting this process does not stop the container
+docker container run -it --name ubuntu_14.04 --rm ubuntu:14.04 bash  # --rm automatically removes the container when it exits
+
+# DOCKER NETWORKS
+
+docker network ls
+docker network inspect bridge
+docker network create network0  # comes with -- driver to specify a new driver
+docker network disconnect 2d54669d333e nginx
+docker network connect network0 nginx
+docker network prune # WARNING! This will remove all custom networks not used by at least one container.
+
+# Custom networks get dns functionality by default
+docker container run -d --name nginx-master --network network0 nginx:alpine
+docker exec -it nginx-master ping nginx
+
+#DNS ROUND ROBIN
+docker network create spotlight
+docker run -d --network spotlight --network-alias search elasticsearch:2  # 2 dns alias with same name
+docker run -d --network spotlight --network-alias search elasticsearch:2
+docker run --rm --network spotlight alpine:3.10 nslookup search # run and exit and clear the container 
+    nslookup: can't resolve '(null)': Name does not resolve
+
+    Name:      search
+    Address 1: 172.19.0.2 search.spotlight
+    Address 2: 172.19.0.3 search.spotlight
+
+docker run --rm --network spotlight centos:7 curl -s search:9200  # run and exit and clear the container 
+
+    {
+        "name" : "Siege",
+        "cluster_name" : "elasticsearch",
+        "cluster_uuid" : "JY4fj5iNRYaQWVOHTo-IYg",
+        "version" : {
+            "number" : "2.4.6",
+             "build_hash" : "5376dca9f70f3abef96a77f4bb22720ace8240fd",
+             "build_timestamp" : "2017-07-18T12:17:44Z",
+            "build_snapshot" : false,
+            "lucene_version" : "5.5.4"
+        },
+        "tagline" : "You Know, for Search"
+    }
+
+#IMAGE
+docker image tag nginx:stable sysout1kk/nginx:latest
+docker image push sysout1kk/nginx
+docker login 
+cat ~/.docker/config.json #auths
+docker image push sysout1kk/nginx:stable
+    The push refers to repository [docker.io/sysout1kk/nginx]
+    0912774f5614: Layer already exists
+    4001c40eb84a: Layer already exists
+    30e31abcfd28: Layer already exists
+    571e84b325eb: Layer already exists
+    9eb82f04c782: Layer already exists
+    stable: digest: sha256:efd06bdca03abe05d44291d09cb7be752fc8d30fb4390e990c88ccdc4ff5bd09 size: 1362
+
+# CLEAN
+docker image prune # to clean up just "dangling" images
+docker system prune -a --volumes  # remove container images and volumes
+
+VOLUMES 
+docker container run -d -p 3306:3306 --env MYSQL_RANDOM_ROOT_PASSWORD=Y -v mysql-local:/var/lib/mysql mysql
+--env="MYSQL_ROOT_PASSWORD=[my_password]" # to tell password
+#install mysql-client
+docker container exec -it b1ede2ce5688fa9ca6ea81bfe0d698f4f7627d1d64edaea32cbe4acf29e614fa sh
+apt-get install mysql-client
+mysql -uroot -pmypassword
+use tutorials
+create table tutorials_tbl(
+   tutorial_id INT NOT NULL AUTO_INCREMENT,
+   tutorial_title VARCHAR(100) NOT NULL,
+   tutorial_author VARCHAR(40) NOT NULL,
+   submission_date DATE,
+   PRIMARY KEY ( tutorial_id )
+);
+
+mysql> INSERT INTO tutorials_tbl 
+   ->(tutorial_title, tutorial_author, submission_date)
+   ->VALUES
+   ->("Learn PHP", "John Poul", NOW());
+
+# delete this container and start a new container with the same attached volume 
+# exec into container, install mysql-client and select * from tutorials_tbl 
+# you will still see the data
+
+# EXERCISE VOLUMES USING POSTGRES
+docker container run -d -p 5432:5432 --name psql-1 --env POSTGRES_PASSWORD=testt --volume psql-data:/var/lib/postgresql/data postgres:9.6.1
+docker container run -d -p 5432:5432 --name psql-2 --env POSTGRES_PASSWORD=testt --volume psql-data:/var/lib/postgresql/data postgres:9.6.2
+
+
+
+
+#Topics
+Networks in Docker: https://www.youtube.com/watch?v=Yr6-2ddhLVo
+Overlay in details: https://www.youtube.com/watch?v=nGSNULpHHZc, https://www.youtube.com/watch?v=b3XDl0YsVsg
+what is a layer 2 network
+what is a layer 3 network
+NAT, DNAT, SNAT https://ipwithease.com/snat-vs-dnat/ https://www.youtube.com/watch?v=wg8Hosr20yw
+IPTABLES: https://serversforhackers.com/c/firewalls-basics-of-iptables
+IPVS
+cname, dns records: https://www.youtube.com/watch?v=cQ0anQfsSOw
+
+

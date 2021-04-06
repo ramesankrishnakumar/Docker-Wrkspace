@@ -1,0 +1,28 @@
+OVERLAY NETWORKS
+docker network create --driver overlay mydrupal
+docker service create --name psql --network mydrupal -e POSTGRES_PASSWORD=mypass postgres
+docker service create --name drupal --network mydrupal -p 80:80 drupal
+
+access over internet
+ssh ip172-18-0-3-c1f5ah3e75e000c209n0@direct.labs.play-with-docker.com
+http://ip172-18-0-3-c1f5ah3e75e000c209n0-[port].direct.labs.play-with-docker.com  # replace '@' with '.'
+http://ip172-18-0-3-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com  # replace '@' with '.'
+
+[node2] (local) root@192.168.0.27 ~
+$ docker service ps drupal
+ID             NAME       IMAGE           NODE      DESIRED STATE   CURRENT STATE            ERROR     PORTS
+hm5o9but943y   drupal.1   drupal:latest   node2     Running         Running 34 minutes ago             
+
+Node1: http://ip172-18-0-3-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com  [gets management console # might be because of 1st manager reason]
+Node2: http://ip172-18-0-20-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com
+Node3: http://ip172-18-0-22-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com
+
+DOCKER MESH NETWORKS
+1) container to container is via VIP [virtual ip]
+2) external trafic to containers -> all nodes listen to the pusblished port and reroute the trafic to correct container
+
+
+docker service create --name search --replicas 3 -p 9200:9200 elasticsearch:2
+http://ip172-18-0-3-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com
+http://ip172-18-0-20-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com/
+http://ip172-18-0-22-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com

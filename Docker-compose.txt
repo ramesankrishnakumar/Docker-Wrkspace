@@ -1,0 +1,125 @@
+docker-compose up # if image already exist, it will be pulled from cache
+docker-compose up -d # run as daemon 
+docker-compose up --build # build the image and bring the contianers up 
+docker-compose down 
+docker-compose down  --volumes # removed named volumes
+docekr-compose down --rmi local # removes local images {not named image in yml file}
+
+Docker-compose yml file
+# volumes:
+    - ./nginx.conf:/etc/nginx/conf.d/default/conf:ro
+# ro means read only dont change configurations
+# service name is the domain name
+# new network is created by default and the services are attached by service name 
+
+SINGLE NODE SWARM
+docker swarm # CHECK IF SWARM IS ENABLE
+docker swarm init [CREATE SWARM ]
+docker node ls
+docker service create alpine ping 8.8.8.8
+docker service ls
+replicas 1/1 [left = actual], [right = wanted]
+docker service ps [service name or id]
+docker container ls # will show the service as container with added
+docker service update [serviceid] --replicas 3 # will create 3 replicas
+# after this if we remove a container docker container rm -f [containerid]
+# docker service ls will show 2/3 and spawn a new one to make it 3/3
+docker service rm [service name or id] # down and remove the service
+
+HOW TO SETUP MANY NODE SWARM
+1) play-with-docker.com
+2) docker-machine + virtual box
+3) digital ocean + docker install
+4) get.docker.com or docker-machine with amazon or azure or DigOcean or Google
+
+PLAY WITH DOCKER [APPROACH]
+
+NODE1
+    docker swarm init --advertise-addr 192.168.0.28
+    docker node ls -> lists node 1 and 2
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active                          20.10.0
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node update --role manager node2
+        node2
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        [node1] (local) root@192.168.0.28 ~
+NODE2
+docker swarm join --token SWMTKN-1-4r0ou5nyza6ss3cjlfpggkdqv0h6aod1oeqz4ld2t037xjs4r4-5ev2avconhxyipfktuzqw4qdz 192.168.0.28:2377
+docker node ls ----> nothing 
+after upgrade
+        node2] (local) root@192.168.0.27 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy     node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso *   node2      Ready     Active         Reachable        20.10.0
+
+
+NOW ADD A NEW MANAGER
+    [node1 ]
+    docker swarm join-token manager   # use this in node 3
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls 
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        agz1mkkick3n3pg2kmldvqt2j     node3      Ready     Active         Reachable        20.10.0
+
+CREATE A SERVICE 
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service create --replicas 3 alpine ping 8.8.8.8
+        jh9lj313mkttsu96sndh4doa5
+        overall progress: 3 out of 3 tasks 
+        1/3: running   [==================================================>] 
+        2/3: running   [==================================================>] 
+        3/3: running   [==================================================>] 
+        verify: Service converged 
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service ls
+        ID             NAME            MODE         REPLICAS   IMAGE           PORTS
+        jh9lj313mktt   elated_hoover   replicated   3/3        alpine:latest   
+
+LIST SERVICE IN LOCAL, NODE 2 OR AS A SERVICE
+    docker node ps
+    docker node ps node2
+    docker service ps [elated_hoover]
+    $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        agz1mkkick3n3pg2kmldvqt2j     node3      Ready     Active         Reachable        20.10.0
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls 
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        agz1mkkick3n3pg2kmldvqt2j     node3      Ready     Active         Reachable        20.10.0
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service ls
+        ID             NAME      MODE         REPLICAS   IMAGE             PORTS
+        m60hqiqwk80t   psql      replicated   1/1        postgres:latest   
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service ps psql
+        ID             NAME      IMAGE             NODE      DESIRED STATE   CURRENT STATE           ERROR     PORTS
+        thux6di49pvh   psql.1    postgres:latest   node1     Running         Running 4 minutes ago             
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ps
+        ID             NAME      IMAGE             NODE      DESIRED STATE   CURRENT STATE           ERROR     PORTS
+        thux6di49pvh   psql.1    postgres:latest   node1     Running         Running 8 minutes ago             
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ps node2
+        ID        NAME      IMAGE     NODE      DESIRED STATE   CURRENT STATE   ERROR     PORTS
