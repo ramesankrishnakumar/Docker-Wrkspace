@@ -133,5 +133,13 @@ NAT, DNAT, SNAT https://ipwithease.com/snat-vs-dnat/ https://www.youtube.com/wat
 IPTABLES: https://serversforhackers.com/c/firewalls-basics-of-iptables
 IPVS
 cname, dns records: https://www.youtube.com/watch?v=cQ0anQfsSOw
-
+Design api's : https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
+https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design
+why no sensitive information in url : https://portswigger.net/kb/issues/00500400_cross-domain-referer-leakage#:~:text=Description%3A%20Cross%2Ddomain%20Referer%20leakage&text=If%20the%20originating%20URL%20contains,lead%20to%20a%20security%20compromise
+https://stackoverflow.com/questions/4143196/is-get-data-also-encrypted-in-https
+Service mesh : https://www.youtube.com/watch?v=6zDrLvpfCK4
+service mesh : https://www.youtube.com/watch?v=16fgzklcF7Y
+https://dzone.com/articles/how-to-achieve-oauth2-security-in-microservices-di
+https://developer.okta.com/blog/2019/04/01/spring-boot-microservices-with-kubernetes
+https://auth0.com/blog/securing-kubernetes-clusters-with-istio-and-auth0/
 
