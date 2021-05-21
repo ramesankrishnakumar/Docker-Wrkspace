@@ -1,0 +1,136 @@
+kubectl run nginx --image nginx
+kubectl get pods
+kubectl version
+kubectl delete deployment nginx
+kubectl get all
+kubectl run my-apache --image httpd
+➜  ~ kubectl get pods
+        NAME                         READY   STATUS    RESTARTS   AGE
+        my-apache-64d9cd484d-v7nch   1/1     Running   0          88s
+
+➜  ~ kubectl scale deploy/my-apache --replicas=2  kubectl scale deployment/my-apache --replicas 2
+        deployment.apps/my-apache scaled
+
+➜  ~ kubectl get pods -o wide ## to give more details
+        NAME                         READY   STATUS              RESTARTS   AGE
+        my-apache-64d9cd484d-qlds9   0/1     ContainerCreating   0          4s
+        my-apache-64d9cd484d-v7nch   1/1     Running             0          2m35s
+
+➜  ~ kubectl get pods
+        NAME                         READY   STATUS    RESTARTS   AGE
+        my-apache-64d9cd484d-qlds9   1/1     Running   0          17s
+        my-apache-64d9cd484d-v7nch   1/1     Running   0          2m48s
+
+➜  ~ kubectl logs deployment/my-apache
+        Found 2 pods, using pod/my-apache-64d9cd484d-v7nch  ---> using only 1 pod 
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.31. Set the 'ServerName' directive globally to suppress this message
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.31. Set the 'ServerName' directive globally to suppress this message
+        [Mon May 10 18:28:19.221127 2021] [mpm_event:notice] [pid 1:tid 140071051166848] AH00489: Apache/2.4.47 (Unix) configured -- resuming normal operations
+        [Mon May 10 18:28:19.221291 2021] [core:notice] [pid 1:tid 140071051166848] AH00094: Command line: 'httpd -D FOREGROUND'
+
+kubectl logs deployment/my-apache --follow --tail 1
+
+kubectl edit deployment my-apache  ## edit the default yml and the update will happen
+
+TO GET LOGS FROM ALL PODS 
+
+➜  ~ kubectl logs -l run=my-apache
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.32. Set the 'ServerName' directive globally to suppress this message
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.32. Set the 'ServerName' directive globally to suppress this message
+        [Mon May 10 18:30:38.926717 2021] [mpm_event:notice] [pid 1:tid 140537965995136] AH00489: Apache/2.4.47 (Unix) configured -- resuming normal operations
+        [Mon May 10 18:30:38.926997 2021] [core:notice] [pid 1:tid 140537965995136] AH00094: Command line: 'httpd -D FOREGROUND'
+
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.31. Set the 'ServerName' directive globally to suppress this message
+        AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.1.0.31. Set the 'ServerName' directive globally to suppress this message
+        [Mon May 10 18:28:19.221127 2021] [mpm_event:notice] [pid 1:tid 140071051166848] AH00489: Apache/2.4.47 (Unix) configured -- resuming normal operations
+        [Mon May 10 18:28:19.221291 2021] [core:notice] [pid 1:tid 140071051166848] AH00094: Command line: 'httpd -D FOREGROUND'
+
+kubectl describe pod/my-apache-64d9cd484d-qlds9
+        describe with details and events -- output very logs
+
+delete a pod since replicas 2, k8s will recreate this. using watch to see the pods
+
+➜  tnetgitRpo git:(master) ✗ kubectl delete pod/my-apache-64d9cd484d-qlds9
+        pod "my-apache-64d9cd484d-qlds9" deleted
+
+➜  ~ kubectl get pods -w
+        NAME                         READY   STATUS    RESTARTS   AGE
+        my-apache-64d9cd484d-qlds9   1/1     Running   0          15m
+        my-apache-64d9cd484d-v7nch   1/1     Running   0          17m
+        my-apache-64d9cd484d-qlds9   1/1     Terminating   0          16m
+        my-apache-64d9cd484d-6l5mw   0/1     Pending       0          0s
+        my-apache-64d9cd484d-6l5mw   0/1     Pending       0          0s
+        my-apache-64d9cd484d-6l5mw   0/1     ContainerCreating   0          0s
+        my-apache-64d9cd484d-qlds9   0/1     Terminating         0          16m
+        my-apache-64d9cd484d-6l5mw   1/1     Running             0          6s
+        my-apache-64d9cd484d-qlds9   0/1     Terminating         0          16m
+        my-apache-64d9cd484d-qlds9   0/1     Terminating         0          16m
+
+➜  tnetgitRpo git:(master) ✗ kubectl get pods
+        NAME                         READY   STATUS    RESTARTS   AGE
+        my-apache-64d9cd484d-6l5mw   1/1     Running   0          35s
+        my-apache-64d9cd484d-v7nch   1/1     Running   0          19m
+
+➜  ~ kubectl create deployment httpenv --image=bretfisher/httpenv
+        deployment.apps/httpenv created
+➜  ~ kubectl scale deployment/httpenv --replicas=5
+        deployment.apps/httpenv scaled
+➜  ~ kubectl expose deployment/httpenv --port=8888
+        service/httpenv exposed
+
+➜  ~ kubectl get service
+        NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+        httpenv      ClusterIP   10.98.103.177   <none>        8888/TCP   79s
+        kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    16d
+
+➜  ~ kubectl run --generator=run-pod/v1 tmp-shell --rm -it --image=bretfisher/netshoot -- bash
+        If you don't see a command prompt, try pressing enter.
+        bash-5.0# curl httpenv:8888
+        {"HOME":"/root","HOSTNAME":"httpenv-6fdc8554fb-rwjlx","KUBERNETES_PORT":"tcp://10.96.0.1:443","KUBERNETES_PORT_443_TCP":"tcp://10.96.0.1:443","KUBERNETES_PORT_443_TCP_ADDR":"10.96.0.1","KUBERNETES_PORT_443_TCP_PORT":"443","KUBERNETES_PORT_443_TCP_PROTO":"tcp","KUBERNETES_SERVICE_HOST":"10.96.0.1","KUBERNETES_SERVICE_PORT":"443","KUBERNETES_SERVICE_PORT_HTTPS":"443","PATH":"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}bash-5.0#
+
+NODE PORT
+
+➜  ~ kubectl expose deployment/httpenv --port=8888 --name httpenv-np --type NodePort
+service/httpenv-np exposed
+
+➜  ~ kubectl get all
+        NAME                           READY   STATUS    RESTARTS   AGE
+        pod/httpenv-6fdc8554fb-4dbww   1/1     Running   0          37m
+        pod/httpenv-6fdc8554fb-4mz64   1/1     Running   0          37m
+        pod/httpenv-6fdc8554fb-jwvnq   1/1     Running   0          37m
+        pod/httpenv-6fdc8554fb-kv64f   1/1     Running   0          37m
+        pod/httpenv-6fdc8554fb-rwjlx   1/1     Running   0          38m
+
+        NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+        service/httpenv      ClusterIP   10.98.103.177   <none>        8888/TCP         36m
+        service/httpenv-np   NodePort    10.111.96.11    <none>        8888:30542/TCP   11s
+        service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          16d
+
+        NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+        deployment.apps/httpenv   5/5     5            5           38m
+
+        NAME                                 DESIRED   CURRENT   READY   AGE
+        replicaset.apps/httpenv-6fdc8554fb   5         5         5       38m
+
+➜  ~ curl localhost:30542
+        {"HOME":"/root","HOSTNAME":"httpenv-6fdc8554fb-kv64f","KUBERNETES_PORT":"tcp://10.96.0.1:443","KUBERNETES_PORT_443_TCP":"tcp://10.96.0.1:443","KUBERNETES_PORT_443_TCP_ADDR":"10.96.0.1","KUBERNETES_PORT_443_TCP_PORT":"443","KUBERNETES_PORT_443_TCP_PROTO":"tcp","KUBERNETES_SERVICE_HOST":"10.96.0.1","KUBERNETES_SERVICE_PORT":"443","KUBERNETES_SERVICE_PORT_HTTPS":"443","PATH":"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}%
+
+➜  ~ kubectl expose deployment/httpenv --port=8888 --name httpenv-lb --type LoadBalancer
+service/httpenv-lb exposed
+
+kubectl delete service/httpenv service/httpenv-np service/httpenv-lb
+kubectl delete deployment/httpenv
+
+default hostname
+curl hostname.namespace.svc.cluster.local
+
+DRY RUN
+kubectl create deployment httpenv --image=bretfisher/httpenv --dry-run -o yaml
+dry run works for expose too {service}
+
+DEPLOYMENT VS JOB
+jobs don't have RESTART { might be no replicas}
+
+AWS concepts: ECS : ECS Fargate : EKS : 
+https://www.youtube.com/watch?v=AYAh6YDXuho
+

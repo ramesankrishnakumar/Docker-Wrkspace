@@ -1,3 +1,115 @@
+SINGLE NODE SWARM
+docker swarm # CHECK IF SWARM IS ENABLE
+docker swarm init [CREATE SWARM ]
+docker node ls
+docker service create alpine ping 8.8.8.8
+docker service ls
+replicas 1/1 [left = actual], [right = wanted]
+docker service ps [service name or id]   -- will show the node on which the service is running
+docker container ls # will show the service as container with added
+docker service update [serviceid] --replicas 3 # will create 3 replicas
+# after this if we remove a container docker container rm -f [containerid]
+# docker service ls will show 2/3 and spawn a new one to make it 3/3
+docker service rm [service name or id] # down and remove the service
+
+HOW TO SETUP MANY NODE SWARM
+1) play-with-docker.com
+2) docker-machine + virtual box
+3) digital ocean + docker install
+4) get.docker.com or docker-machine with amazon or azure or DigOcean or Google
+
+PLAY WITH DOCKER [APPROACH]
+
+NODE1
+    docker swarm init --advertise-addr 192.168.0.28
+    docker node ls -> lists node 1 and 2
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active                          20.10.0
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node update --role manager node2
+        node2
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        [node1] (local) root@192.168.0.28 ~
+NODE2
+docker swarm join --token SWMTKN-1-4r0ou5nyza6ss3cjlfpggkdqv0h6aod1oeqz4ld2t037xjs4r4-5ev2avconhxyipfktuzqw4qdz 192.168.0.28:2377
+docker node ls ----> nothing 
+after upgrade from node1 [docker node update --role manager node2]
+        node2] (local) root@192.168.0.27 ~
+        $ docker node ls
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy     node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso *[means one i'm taking to ]   node2      Ready     Active         Reachable        20.10.0 
+
+
+NOW ADD A NEW MANAGER
+    [node1 ]
+    docker swarm join-token manager   # use this in node 3
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls 
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        agz1mkkick3n3pg2kmldvqt2j     node3      Ready     Active         Reachable        20.10.0
+
+CREATE A SERVICE 
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service create --replicas 3 alpine ping 8.8.8.8
+        jh9lj313mkttsu96sndh4doa5
+        overall progress: 3 out of 3 tasks 
+        1/3: running   [==================================================>] 
+        2/3: running   [==================================================>] 
+        3/3: running   [==================================================>] 
+        verify: Service converged 
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service ls
+        ID             NAME            MODE         REPLICAS   IMAGE           PORTS
+        jh9lj313mktt   elated_hoover   replicated   3/3        alpine:latest   
+
+LIST SERVICE IN LOCAL, NODE 2 OR AS A SERVICE
+    docker node ps
+    docker node ps node2
+    docker service ps [elated_hoover]
+    $ docker node ls
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ls 
+        ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+        elza2diefdhheg5ytqoyjn2cy *   node1      Ready     Active         Leader           20.10.0
+        dpxcb3zqreb3zx3oqb2oyocso     node2      Ready     Active         Reachable        20.10.0
+        agz1mkkick3n3pg2kmldvqt2j     node3      Ready     Active         Reachable        20.10.0
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker service ls
+        ID             NAME      MODE         REPLICAS   IMAGE             PORTS
+        m60hqiqwk80t   psql      replicated   1/1        postgres:latest   
+
+        $ docker service ps vigilant_engelbart
+        ID             NAME                       IMAGE           NODE      DESIRED STATE   CURRENT STATE                ERROR                         PORTS
+        0xgx3xwxmr55   vigilant_engelbart.1       alpine:latest   node3     Running         Running 23 seconds ago                                     
+        5gjl8ub7j4ic    \_ vigilant_engelbart.1   alpine:latest   node3     Shutdown        Failed 28 seconds ago        "task: non-zero exit (137)"   
+        qijt4ogw4khn   vigilant_engelbart.2       alpine:latest   node1     Running         Running about a minute ago                                 
+        1d7b3tzvifop   vigilant_engelbart.3       alpine:latest   node2     Running         Running about a minute ago        
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ps
+        ID             NAME      IMAGE             NODE      DESIRED STATE   CURRENT STATE           ERROR     PORTS
+        thux6di49pvh   psql.1    postgres:latest   node1     Running         Running 8 minutes ago             
+
+        [node1] (local) root@192.168.0.28 ~
+        $ docker node ps node2
+        ID        NAME      IMAGE     NODE      DESIRED STATE   CURRENT STATE   ERROR     PORTS
+
+        
+
+
 OVERLAY NETWORKS
 docker network create --driver overlay mydrupal
 docker service create --name psql --network mydrupal -e POSTGRES_PASSWORD=mypass postgres
@@ -17,12 +129,55 @@ Node1: http://ip172-18-0-3-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.
 Node2: http://ip172-18-0-20-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com
 Node3: http://ip172-18-0-22-c1f5ah3e75e000c209n0-80.direct.labs.play-with-docker.com
 
+what is IPVS ?
+
+
 DOCKER MESH NETWORKS
 1) container to container is via VIP [virtual ip]
 2) external trafic to containers -> all nodes listen to the pusblished port and reroute the trafic to correct container
+3) LB layer 3 (TCP) vs Layer 4 (DNS) ?
 
 
-docker service create --name search --replicas 3 -p 9200:9200 elasticsearch:2
-http://ip172-18-0-3-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com
-http://ip172-18-0-20-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com/
-http://ip172-18-0-22-c1f5ah3e75e000c209n0-9200.direct.labs.play-with-docker.com
+## Swarm Stacks and Production Grade Compose
+
+docker stack deploy -c example-voting-app-stack.yml voteapp
+    $ docker stack deploy -c example-voting-app-stack.yml voteapp
+    Creating network voteapp_backend
+    Creating network voteapp_frontend
+    Creating service voteapp_worker
+    Creating service voteapp_redis
+    Creating service voteapp_db
+    Creating service voteapp_vote
+    Creating service voteapp_result
+    [node1] (local) root@192.168.0.18 /etc/docker
+
+docker stack ls
+    $ docker stack ls
+    NAME      SERVICES   ORCHESTRATOR
+    voteapp   5          Swarm
+    [node1] (local) root@192.168.0.18 /etc/docker
+docker stack ps voteapp
+    ID             NAME                                       IMAGE                                       NODE      DESIRED STATE   CURRENT STATE                ERROR     PORTS
+    btoqixred77w   voteapp_db.1                               postgres:9.6                                node2     Running         Running about a minute ago             
+    dnn1t9q1v795   voteapp_redis.1                            redis:alpine                                node1     Running         Running about a minute ago             
+    59hvlpq2tcr5   voteapp_result.1                           bretfisher/examplevotingapp_result:latest   node3     Running         Running about a minute ago             
+    1rujhzmnsq50   voteapp_vote.83m0v9emwiel6myzzh6qlg8q4     bretfisher/examplevotingapp_vote:latest     node3     Running         Running about a minute ago             
+    joqpe520w4ai   voteapp_vote.i5h4jfjsavy1o82q0y8sm4ot9     bretfisher/examplevotingapp_vote:latest     node1     Running         Running about a minute ago             
+    la1nwglhkccw   voteapp_vote.ijwycadqv3i70j9mk6nnjly3k     bretfisher/examplevotingapp_vote:latest     node2     Running         Running about a minute ago             
+    mhv8x86tr6bp   voteapp_vote.xkpdncujyn65ll9oqq00sr2dr     bretfisher/examplevotingapp_vote:latest     node4     Running         Running about a minute ago             
+    wxr8a6cdamaw   voteapp_worker.83m0v9emwiel6myzzh6qlg8q4   bretfisher/examplevotingapp_worker:java     node3     Running         Running about a minute ago             
+    req4c2a8ubso   voteapp_worker.i5h4jfjsavy1o82q0y8sm4ot9   bretfisher/examplevotingapp_worker:java     node1     Running         Running about a minute ago             
+    py2q5h9hi4c8   voteapp_worker.ijwycadqv3i70j9mk6nnjly3k   bretfisher/examplevotingapp_worker:java     node2     Running         Running about a minute ago             
+    mhv2zbmgxepo   voteapp_worker.xkpdncujyn65ll9oqq00sr2dr   bretfisher/examplevotingapp_worker:java     node4     Running         Running about a minute ago             
+    [node1] (local) root@192.168.0.18 /etc/docker
+docker stack services voteapp
+    $ docker stack services voteapp
+    ID             NAME             MODE         REPLICAS   IMAGE                                       PORTS
+    8xthi45xcmwf   voteapp_db       replicated   1/1        postgres:9.6                                
+    p0825lj5nc5p   voteapp_redis    replicated   1/1        redis:alpine                                
+    zapgmj8jkikk   voteapp_result   replicated   1/1        bretfisher/examplevotingapp_result:latest   *:5001->80/tcp
+    phwr0mtdwem7   voteapp_vote     global       4/4        bretfisher/examplevotingapp_vote:latest     *:5000->80/tcp
+    xfg1oqng3twd   voteapp_worker   global       4/4        bretfisher/examplevotingapp_worker:java     
+    [node1] (local) root@192.168.0.18 /etc/docker
+    
+docker stack deploy -c example-voting-app-stack.yml voteapp

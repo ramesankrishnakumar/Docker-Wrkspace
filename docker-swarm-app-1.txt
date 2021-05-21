@@ -1,0 +1,129 @@
+docker swarm init --advertise-addr 192.168.0.18
+docker swarm join-token manager
+     docker swarm join --token SWMTKN-1-4d8aeo35gdhblocmuc7uz784425q7it2vx3e0eqfk5o6wgj4qf-6ikhtspka1h2lm416eez2tqza 192.168.0.18:2377
+docker swarm join-token manager
+    docker swarm join --token SWMTKN-1-4d8aeo35gdhblocmuc7uz784425q7it2vx3e0eqfk5o6wgj4qf-6ikhtspka1h2lm416eez2tqza 192.168.0.17:2377
+docker swarm join-token worker
+    docker swarm join --token SWMTKN-1-4d8aeo35gdhblocmuc7uz784425q7it2vx3e0eqfk5o6wgj4qf-c2rhuk4bw27lz48ann77ow3e2 192.168.0.16:2377
+docker swarm join-token worker
+    docker swarm join --token SWMTKN-1-4d8aeo35gdhblocmuc7uz784425q7it2vx3e0eqfk5o6wgj4qf-c2rhuk4bw27lz48ann77ow3e2 192.168.0.16:2377
+
+[node3] (local) root@192.168.0.16 ~
+$ docker node ls
+ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+96hdp3m5witg1iw8rb7uvgen8     node1      Ready     Active         Leader           20.10.0
+542odm3xg9zobw99v72n29trf     node2      Ready     Active         Reachable        20.10.0
+pg3bq8t98174ctuejy8y85vp5 *   node3      Ready     Active         Reachable        20.10.0
+lei3fde12iouev4vcxnlchr2e     node4      Ready     Active                          20.10.0
+sbv6ngj1j1pggm2im35o0qyip     node5      Ready     Active                          20.10.0
+[node3] (local) root@192.168.0.16 ~
+
+- vote
+    - bretfisher/examplevotingapp_vote
+    - web front end for users to vote dog/cat
+    - ideally published on TCP 80. Container listens on 80
+    - on frontend network
+    - 2+ replicas of this container
+
+docker network create --driver overlay frontend
+docker service create --name vote --replicas 3 -p 80:80 --network frontend bretfisher/examplevotingapp_vote
+    vewqkjfbdaofd040qo90g14vn
+    overall progress: 3 out of 3 tasks 
+    1/3: running   [==================================================>] 
+    2/3: running   [==================================================>] 
+    3/3: running   [==================================================>] 
+    verify: Service converged 
+
+[node2] (local) root@192.168.0.17 ~
+$ docker service ls
+        ID             NAME      MODE         REPLICAS   IMAGE                                     PORTS
+        vewqkjfbdaof   vote      replicated   3/3        bretfisher/examplevotingapp_vote:latest   *:80->80/tcp
+        [node2] (local) root@192.168.0.17 ~
+$ docker service ps vote
+        ID             NAME      IMAGE                                     NODE      DESIRED STATE   CURRENT STATE            ERROR     PORTS
+        zce9q4f7vvw5   vote.1    bretfisher/examplevotingapp_vote:latest   node5     Running         Running 33 seconds ago             
+        fw2q2918i24l   vote.2    bretfisher/examplevotingapp_vote:latest   node1     Running         Running 33 seconds ago             
+        brdwlemwvnz6   vote.3    bretfisher/examplevotingapp_vote:latest   node4     Running         Running 33 seconds ago  
+- redis
+    - redis:3.2
+    - key/value storage for incoming votes
+    - no public ports
+    - on frontend network
+    - 1 replica NOTE VIDEO SAYS TWO BUT ONLY ONE NEEDED
+
+docker service create --name redis --network frontend redis:3.2
+
+[node2] (local) root@192.168.0.17 ~
+$ docker service ls
+    ID             NAME      MODE         REPLICAS   IMAGE                                     PORTS
+    chowt15q3vk6   redis     replicated   1/1        redis:3.2                                 
+    vewqkjfbdaof   vote      replicated   3/3        bretfisher/examplevotingapp_vote:latest   *:80->80/tcp
+[node2] (local) root@192.168.0.17 ~
+$ docker service ps redis
+    ID             NAME      IMAGE       NODE      DESIRED STATE   CURRENT STATE            ERROR     PORTS
+    xrp9gysqx66a   redis.1   redis:3.2   node2     Running         Running 14 seconds ago 
+
+- worker
+    - bretfisher/examplevotingapp_worker:java
+    - backend processor of redis and storing results in postgres
+    - no public ports
+    - on frontend and backend networks
+    - 1 replica    
+
+docker network create --driver overlay backend
+docker service create --name worker --network frontend --network backend bretfisher/examplevotingapp_worker:java
+
+[node2] (local) root@192.168.0.17 ~
+$ docker network ls
+        NETWORK ID     NAME              DRIVER    SCOPE
+        vdh0eurfpnf9   backend           overlay   swarm
+        7119a9a35735   bridge            bridge    local
+        724edf32b845   docker_gwbridge   bridge    local
+        pe8m9vxwwrl6   frontend          overlay   swarm
+        97b162c89543   host              host      local
+        77pvadzsjtsf   ingress           overlay   swarm
+        77c1b66c43ff   none              null      local
+
+$ docker service ps worker
+    ID             NAME       IMAGE                                     NODE      DESIRED STATE   CURRENT STATE           ERROR     PORTS
+    7f3aafh45q98   worker.1   bretfisher/examplevotingapp_worker:java   node3     Running         Running 2 seconds ago             
+[node3] (local) root@192.168.0.16 ~
+$ docker service ls
+    ID             NAME      MODE         REPLICAS   IMAGE                                     PORTS
+    chowt15q3vk6   redis     replicated   1/1        redis:3.2                                 
+    vewqkjfbdaof   vote      replicated   3/3        bretfisher/examplevotingapp_vote:latest   *:80->80/tcp
+    anfonotbl1g1   worker    replicated   1/1        bretfisher/examplevotingapp_worker:java   
+[node3] (local) root@192.168.0.16 ~
+
+- db
+    - postgres:9.4
+    - one named volume needed, pointing to /var/lib/postgresql/data
+    - on backend network
+    - 1 replica
+    - remember set env for password-less connections -e POSTGRES_HOST_AUTH_METHOD=trust
+
+docker volume create --name="psql-db"
+$ docker volume create --name="psql-db"
+    psql-db
+docker service create \
+--name db \
+--network backend \
+-e POSTGRES_HOST_AUTH_METHOD=trust \
+--mount source=psql-db,target=/var/lib/postgresql/data \
+postgres:9.4
+
+
+- result
+    - bretfisher/examplevotingapp_result
+    - web app that shows results
+    - runs on high port since just for admins (lets imagine)
+    - so run on a high port of your choosing (I choose 5001), container listens on 80
+    - on backend network
+    - 1 replica
+
+docker service create --name result --network backend -p 5001:80 bretfisher/examplevotingapp_result
+
+
+http://ip172-18-0-10-c2534klmrepg00acnjrg-80.direct.labs.play-with-docker.com/
+http://ip172-18-0-21-c2534klmrepg00acnjrg-5100.direct.labs.play-with-docker.com/
+http://ip172-18-0-21-c2534klmrepg00acnjrg-5001.direct.labs.play-with-docker.com/

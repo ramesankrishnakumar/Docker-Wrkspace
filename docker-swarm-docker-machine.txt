@@ -1,0 +1,20 @@
+docker-machine create --driver virtualbox vm01
+docker-machine create --driver virtualbox vm02
+docker-machine create --driver virtualbox vm03
+
+docker-machine ls
+    tnetgitRpo git:(master) ✗ docker-machine ls
+    NAME   ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER      ERRORS
+    vm01   -        virtualbox   Running   tcp://192.168.99.101:2376           v19.03.12
+    vm02   -        virtualbox   Running   tcp://192.168.99.102:2376           v19.03.12
+    vm03   -        virtualbox   Running   tcp://192.168.99.103:2376           v19.03.12
+
+eval $(docker-machine env vm01)
+docker-machine active
+docker swarm init --advertise-addr 192.168.99.101
+
+#You will be back to the main shell, unset the environment
+$eval $(docker-machine env -u)
+
+docker-machine ssh node1
+docker-machine env node1

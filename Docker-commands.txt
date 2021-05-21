@@ -88,6 +88,10 @@ docker image push sysout1kk/nginx:stable
     9eb82f04c782: Layer already exists
     stable: digest: sha256:efd06bdca03abe05d44291d09cb7be752fc8d30fb4390e990c88ccdc4ff5bd09 size: 1362
 
+mvn clean package && docker image build -t sysout1kk/api-company:latest .
+docker image push sysout1kk/api-company
+
+
 # CLEAN
 docker image prune # to clean up just "dangling" images
 docker system prune -a --volumes  # remove container images and volumes
@@ -121,7 +125,13 @@ mysql> INSERT INTO tutorials_tbl
 docker container run -d -p 5432:5432 --name psql-1 --env POSTGRES_PASSWORD=testt --volume psql-data:/var/lib/postgresql/data postgres:9.6.1
 docker container run -d -p 5432:5432 --name psql-2 --env POSTGRES_PASSWORD=testt --volume psql-data:/var/lib/postgresql/data postgres:9.6.2
 
+It is possible to mount a host directory to a specific path in your container using the -v or --volume command line option. The following example will mount /etc on the host to /mnt/etc in the container:
 
+(on linux) docker run -v "/etc:/mnt/etc" alpine cat /mnt/etc/passwd
+(on windows)  docker run -v "/c/etc:/mnt/etc" alpine cat /mnt/etc/passwd
+The default access to the volume inside the container is read-write. To mount a volume read-only inside of a container, use the suffix :ro:
+
+docker run -v "/etc:/mnt/etc:ro" alpine touch /mnt/etc/passwd
 
 
 #Topics
@@ -137,9 +147,17 @@ Design api's : https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api
 https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design
 why no sensitive information in url : https://portswigger.net/kb/issues/00500400_cross-domain-referer-leakage#:~:text=Description%3A%20Cross%2Ddomain%20Referer%20leakage&text=If%20the%20originating%20URL%20contains,lead%20to%20a%20security%20compromise
 https://stackoverflow.com/questions/4143196/is-get-data-also-encrypted-in-https
+
 Service mesh : https://www.youtube.com/watch?v=6zDrLvpfCK4
 service mesh : https://www.youtube.com/watch?v=16fgzklcF7Y
 https://dzone.com/articles/how-to-achieve-oauth2-security-in-microservices-di
 https://developer.okta.com/blog/2019/04/01/spring-boot-microservices-with-kubernetes
 https://auth0.com/blog/securing-kubernetes-clusters-with-istio-and-auth0/
+
+hostname command = https://phoenixnap.com/kb/linux-hostname-command
+nslookup  https://www.cloudns.net/blog/10-most-used-nslookup-commands/
+ip command https://linuxize.com/post/linux-ip-command/
+
+
+
 
